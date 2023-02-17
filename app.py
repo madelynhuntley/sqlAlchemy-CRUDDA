@@ -286,7 +286,7 @@ def user_deactivate_by_id(user_id):
 @app.route('/user/delete/<user_id>', methods=['DELETE'])
 def user_delete_by_id(user_id):
 
-    user_data = db.session.query(Organization).filter(Organization.user_id == user_id).first()
+    user_data = db.session.query(Users).filter(Users.user_id == user_id).first()
     
     if user_data:
         db.session.delete(user_data)
