@@ -27,8 +27,6 @@ def is_valid_uuid(value):
 
 def get_user_from_object(user):
      
-    #  user_org_data = db.session.query(Organization).filter(Organization.org_id == Users.org_id).first()
-     
      return {
             'user_id':user.user_id,
             'first_name':user.first_name,
@@ -92,7 +90,6 @@ def add_organization():
     city = data.get('city')
     state = data.get('state')
     type = data.get('type')
-
 
     new_org_record = Organization(name, phone, city, state, type)
     db.session.add(new_org_record)
@@ -167,7 +164,7 @@ def get_all_active_orgs():
 # A - Activate (/org/activate/<org_id>)
 
 
-@app.route('/user/update/<user_id>', methods=['POST'])
+@app.route('/user/update/<user_id>', methods=['POST','PUT', 'PATCH'])
 def user_update(user_id ):
     if not is_valid_uuid(user_id):
         return "invalid id", 400
