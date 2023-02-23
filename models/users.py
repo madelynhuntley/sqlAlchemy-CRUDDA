@@ -14,7 +14,9 @@ class Users(db.Model):
     state = db.Column(db.String())
     org_id = db.Column(UUID(as_uuid=True), db.ForeignKey('organizations.org_id'))
     active = db.Column(db.Boolean, nullable=False, default=True)
-    # organization = db.relationship('organizations', backref=db.backref('users'))
+
+    organization = db.relationship('Organization', back_populates='users')
+  
 
     def __init__(self, first_name, last_name, email, phone, city, state, org_id, active=True):
         self.first_name = first_name
@@ -23,7 +25,7 @@ class Users(db.Model):
         self.phone = phone
         self.city = city
         self.state = state
-        self.active = active
         self.org_id = org_id 
+        self.active = active
 
 

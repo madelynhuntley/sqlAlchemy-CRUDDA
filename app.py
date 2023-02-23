@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, jsonify, request
-from users import Users
-from organizations import Organization
+from models.users import Users
+from models.organizations import Organization
 import uuid
 from db import db, init_db
 
@@ -27,7 +27,7 @@ def is_valid_uuid(value):
 
 def get_user_from_object(user):
      
-     return {
+     new_user_dict = {
             'user_id':user.user_id,
             'first_name':user.first_name,
             'last_name':user.last_name,
@@ -35,18 +35,11 @@ def get_user_from_object(user):
             'phone':user.phone,
             'city':user.city,
             'state':user.state,
-
-            "organization": {
-            "org_id": user.org_id,
-                # "name": user_org_data.name,
-                # "phone": user_org_data.phone,
-                # "city": user_org_data.city,
-                # "state": user_org_data.state,
-                # "active": user_org_data.active,
-                # "type": user_org_data.type
-            },
             'active':user.active
         }
+   
+     new_user_dict['organization'] = get_org_from_object(user.organization)
+     return new_user_dict
 
 def get_org_from_object(org):
     return {
@@ -78,12 +71,14 @@ def add_user():
     db.session.add(new_user_record)
     db.session.commit()
 
-    return 'User added', 201
+    return jsonify(get_user_from_object(new_user_record)), 201
 
 @app.route('/org/add', methods=['POST'])
 def add_organization():
     data = request.json
     name = data.get('name')
+    if not name or len(name) < 1:
+        return jsonify("Name must be a non-empty string"), 400
     phone = data.get('phone')
     if len(phone) > 20:
         return "Phone number cannot be longer than 20 characters", 400
@@ -95,7 +90,7 @@ def add_organization():
     db.session.add(new_org_record)
     db.session.commit()
 
-    return 'Oranization added', 201
+    return jsonify(get_org_from_object(new_org_record)), 201
 
 
 
@@ -123,12 +118,22 @@ def get_by_org_id(org_id):
     if not org_record:
         return jsonify("Organization not found"), 404
     
-    return jsonify(get_org_from_object(org_record)), 200
+    org_dict = get_org_from_object(org_record)
+    users = []
+    for u in org_record.users:
+        users.append({
+            'user_id': u.user_id,
+            'first_name': u.first_name,
+            'last_name': u.last_name
+        })
+
+        org_dict['users'] = users
+        return jsonify(org_dict), 200
 
 
 @app.route('/users/get', methods=['GET'])
 def get_all_active_users():
-    user_records = db.session.query(Users).filter(Users.active==True).all()
+    user_records = db.session.query(Users).filter(Users.active == True).all()
    
     if user_records: 
         users = []
@@ -149,6 +154,7 @@ def get_all_active_orgs():
         organizations = []
         for o in org_records:
             org_record = get_org_from_object(o)
+            org_record['num_users'] = len(o.users)
             organizations.append(org_record)
 
         return jsonify(organizations), 200
@@ -257,13 +263,14 @@ def organization_deactivate_by_id(org_id):
 def user_activate_by_id(user_id):
     user_data = db.session.query(Users).filter(Users.user_id == user_id).first()
 
-    if user_data:
-        user_data.active = True
-        db.session.commit()
+    if not user_data:
+        return jsonify(f"User with user_id {user_id} Not Found"), 404
+    
+    user_data.active = True
+    db.session.commit()
 
-        return jsonify(f"User {user_id} activated ! "), 200
+    return jsonify(f"User {user_id} activated ! "), 200
 
-    return jsonify(f'User with user_id {user_id} Not Found'), 404
 
 
 @app.route('/user/deactivate/<user_id>', methods=['PUT', 'POST', 'PATCH'])
