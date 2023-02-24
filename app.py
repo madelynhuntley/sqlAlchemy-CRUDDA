@@ -55,23 +55,30 @@ def get_org_from_object(org):
 @app.route('/user/add', methods=['POST'])
 def add_user():
     data = request.json
+    email = data.get('email')
+
+    user_email = bool(Users.query.filter_by(email=email).first())
+    if user_email:
+        return "Email already exists", 400
+    
+    if len(email) < 1:
+        return "Email must be a non-empty string", 400
+
     first_name = data.get('first_name')
     last_name = data.get('last_name')
-    email = data.get('email')
-    if not email:
-        return "Email must be a non-empty string", 400
     phone = data.get('phone')
-    if len(phone) > 20:
-        return "Phone number cannot be longer than 20 characters", 400
     city = data.get('city')
     state = data.get('state')
     org_id = data.get('org_id')
+    
+    if len(phone) > 20:
+        return "Phone number cannot be longer than 20 characters", 400
 
     new_user_record = Users(first_name, last_name, email, phone, city, state, org_id)
     db.session.add(new_user_record)
     db.session.commit()
 
-    return jsonify(get_user_from_object(new_user_record)), 201
+    return jsonify(get_user_from_object(new_user_record)), 200
 
 @app.route('/org/add', methods=['POST'])
 def add_organization():
@@ -133,6 +140,7 @@ def get_by_org_id(org_id):
 
 @app.route('/users/get', methods=['GET'])
 def get_all_active_users():
+
     user_records = db.session.query(Users).filter(Users.active == True).all()
    
     if user_records: 
@@ -145,6 +153,7 @@ def get_all_active_users():
     
 
     return 'No users found', 404
+
 
 @app.route('/org/get', methods=['GET'])
 def get_all_active_orgs():
