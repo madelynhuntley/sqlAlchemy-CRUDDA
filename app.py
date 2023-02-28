@@ -81,6 +81,7 @@ def add_user():
 
     return jsonify(user_schema.dump(new_user_record)), 200
 
+
 @app.route('/org/add', methods=['POST'])
 def add_organization():
     data = request.json
@@ -161,7 +162,7 @@ def get_all_active_users():
 
 @app.route('/org/get', methods=['GET'])
 def get_all_active_orgs():
-    org_records = db.session.query(Organization).filter(Organization.active==True).all()
+    org_records = db.session.query(Organization).filter(Organization.active == True).all()
    
     if org_records: 
         # organizations = []
@@ -177,7 +178,7 @@ def get_all_active_orgs():
 
 @app.route('/orgs/public', methods=['GET'])
 def get_public_orgs():
-    org_records = db.session.query(Organization).filter(Organization.active==True).all()
+    org_records = db.session.query(Organization).filter(Organization.active == True).all()
     
     if org_records:
         return jsonify(publics_schema.dump(org_records)), 200
