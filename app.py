@@ -1,7 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, jsonify, request
-from models.users import Users
-from models.organizations import Organization
+from models.users import Users, user_schema, users_schema
+
+from models.organizations import Organization, org_schema, orgs_schema, publics_schema
 import uuid
 from db import db, init_db
 
@@ -25,32 +26,32 @@ def is_valid_uuid(value):
     except ValueError:
         return False
 
-def get_user_from_object(user):
+# def get_user_from_object(user):
      
-     new_user_dict = {
-            'user_id':user.user_id,
-            'first_name':user.first_name,
-            'last_name':user.last_name,
-            'email':user.email,
-            'phone':user.phone,
-            'city':user.city,
-            'state':user.state,
-            'active':user.active
-        }
+#      new_user_dict = {
+#             'user_id':user.user_id,
+#             'first_name':user.first_name,
+#             'last_name':user.last_name,
+#             'email':user.email,
+#             'phone':user.phone,
+#             'city':user.city,
+#             'state':user.state,
+#             'active':user.active
+#         }
    
-     new_user_dict['organization'] = get_org_from_object(user.organization)
-     return new_user_dict
+#      new_user_dict['organization'] = get_org_from_object(user.organization)
+#      return new_user_dict
 
-def get_org_from_object(org):
-    return {
-        'org_id':org.org_id,
-        'name':org.name,
-        'phone':org.phone,
-        'city':org.city,
-        'state':org.state,
-        'active':org.active,
-        'type':org.type
-    }
+# def get_org_from_object(org):
+#     return {
+#         'org_id':org.org_id,
+#         'name':org.name,
+#         'phone':org.phone,
+#         'city':org.city,
+#         'state':org.state,
+#         'active':org.active,
+#         'type':org.type
+#     }
 
 @app.route('/user/add', methods=['POST'])
 def add_user():
@@ -78,7 +79,7 @@ def add_user():
     db.session.add(new_user_record)
     db.session.commit()
 
-    return jsonify(get_user_from_object(new_user_record)), 200
+    return jsonify(user_schema.dump(new_user_record)), 200
 
 @app.route('/org/add', methods=['POST'])
 def add_organization():
@@ -97,7 +98,7 @@ def add_organization():
     db.session.add(new_org_record)
     db.session.commit()
 
-    return jsonify(get_org_from_object(new_org_record)), 201
+    return jsonify(org_schema.dump(new_org_record)), 201
 
 
 
@@ -112,7 +113,7 @@ def get_by_id(user_id):
     if not user_record:
         return jsonify("User not found"), 404
     
-    return jsonify(get_user_from_object(user_record)), 200
+    return jsonify(user_schema.dump(user_record)), 200
 
 
 @app.route('/org/get/<org_id>', methods=['GET'])
@@ -125,31 +126,34 @@ def get_by_org_id(org_id):
     if not org_record:
         return jsonify("Organization not found"), 404
     
-    org_dict = get_org_from_object(org_record)
-    users = []
-    for u in org_record.users:
-        users.append({
-            'user_id': u.user_id,
-            'first_name': u.first_name,
-            'last_name': u.last_name
-        })
+    return jsonify(org_schema.dump(org_record)), 200
+    
+    # org_dict = get_org_from_object(org_record)
+    # users = []
+    # for u in org_record.users:
+    #     users.append({
+    #         'user_id': u.user_id,
+    #         'first_name': u.first_name,
+    #         'last_name': u.last_name
+    #     })
 
-        org_dict['users'] = users
-        return jsonify(org_dict), 200
+        # org_dict['users'] = users
+        # return jsonify(org_dict), 200
 
-
+    
 @app.route('/users/get', methods=['GET'])
 def get_all_active_users():
 
     user_records = db.session.query(Users).filter(Users.active == True).all()
    
     if user_records: 
-        users = []
-        for u in user_records:
-            user_record = get_user_from_object(u)
-            users.append(user_record)
+        return jsonify(users_schema.dump(user_records)), 200
+    
+        # users = []
+        # for u in user_records:
+        #     user_record = get_user_from_object(u)
+        #     users.append(user_record)
 
-        return jsonify(users), 200
     
 
     return 'No users found', 404
@@ -160,16 +164,25 @@ def get_all_active_orgs():
     org_records = db.session.query(Organization).filter(Organization.active==True).all()
    
     if org_records: 
-        organizations = []
-        for o in org_records:
-            org_record = get_org_from_object(o)
-            org_record['num_users'] = len(o.users)
-            organizations.append(org_record)
+        # organizations = []
+        # for o in org_records:
+        #     org_record = get_org_from_object(o)
+        #     org_record['num_users'] = len(o.users)
+        #     organizations.append(org_record)
 
-        return jsonify(organizations), 200
+        return jsonify(orgs_schema.dump(org_records)), 200
 
     return 'No organizations found', 404
 
+
+@app.route('/orgs/public', methods=['GET'])
+def get_public_orgs():
+    org_records = db.session.query(Organization).filter(Organization.active==True).all()
+    
+    if org_records:
+        return jsonify(publics_schema.dump(org_records)), 200
+    
+    return jsonify('No public organizations found'), 404
 
 # C - Create (/org/add)
 # R - Read (/orgs/get, /org/get/<org_id>)
@@ -208,7 +221,7 @@ def user_update(user_id ):
             
         db.session.commit()
 
-    return jsonify(get_user_from_object(user_record)), 200
+    return jsonify(user_schema.dump(user_record)), 200
 
 
 
@@ -238,7 +251,7 @@ def oranization_update(org_id):
 
         db.session.commit()
 
-    return jsonify (get_org_from_object(org_record)), 200
+    return jsonify (org_schema.dump(org_record)), 200
 
 
 
@@ -250,7 +263,7 @@ def organization_activate_by_id(org_id):
         org_data.active = True
         db.session.commit()
 
-        return jsonify(f"Organization {org_id} activated ! "), 200
+        return jsonify(org_schema.dump(org_data)), 200
 
     return jsonify(f'Organization with org_id {org_id} Not Found'), 404
 
@@ -263,7 +276,7 @@ def organization_deactivate_by_id(org_id):
         org_data.active = False
         db.session.commit()
 
-        return jsonify(f"Organization {org_id} deactivated ! "), 200
+        return jsonify(org_schema.dump(org_data)), 200
 
     return jsonify(f'Organization with org_id {org_id} Not Found'), 404
 
@@ -278,7 +291,7 @@ def user_activate_by_id(user_id):
     user_data.active = True
     db.session.commit()
 
-    return jsonify(f"User {user_id} activated ! "), 200
+    return jsonify(user_schema.dump(user_data)), 200
 
 
 
@@ -291,7 +304,7 @@ def user_deactivate_by_id(user_id):
         user_data.active = False
         db.session.commit()
 
-        return jsonify(f"User {user_id} deactivated ! "), 200
+        return jsonify(user_schema.dump(user_data)), 200
 
     return jsonify(f'User with user_id {user_id} Not Found'), 404
 
