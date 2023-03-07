@@ -72,6 +72,14 @@ def add_user():
     state = data.get('state')
     org_id = data.get('org_id')
     
+    org_record = db.session.query(Organization).filter(Organization.org_id == org_id).first()
+
+    if not org_record:
+        return "Organization not found", 404
+    
+    if not is_valid_uuid(org_id):
+        return "invalid org id", 400
+    
     if len(phone) > 20:
         return "Phone number cannot be longer than 20 characters", 400
 
