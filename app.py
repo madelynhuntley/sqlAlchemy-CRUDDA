@@ -53,6 +53,14 @@ def is_valid_uuid(value):
 #         'type':org.type
 #     }
 
+def populate_object(obj, data_dictionary): 
+    feilds = data_dictionary.keys()
+
+    for feild in feilds:
+        if hasattr(obj, feild):
+            setattr(obj, feild, data_dictionary[feild])
+    return obj
+
 @app.route('/user/add', methods=['POST'])
 def add_user():
     data = request.json
@@ -243,22 +251,11 @@ def oranization_update(org_id):
 
     org_record = db.session.query(Organization).filter(Organization.org_id == org_id).first()
 
-    if org_record:
-
-        if 'name' in request_params:
-            org_record.name = request_params['name']
-        if 'phone' in request_params:
-            org_record.phone = request_params['phone']
-        if 'city' in request_params:
-            org_record.city = request_params['city']
-        if'state' in request_params:
-            org_record.state = request_params['state']
-        if 'type' in request_params:
-            org_record.type = request_params['type']
-        if 'active' in request_params:
-            org_record.active = request_params['active']
-
-        db.session.commit()
+    if not org_record:
+        return jsonify("Organization not found"), 404
+    
+    populate_object(org_record, request_params)
+    db.session.commit()
 
     return jsonify (org_schema.dump(org_record)), 200
 
